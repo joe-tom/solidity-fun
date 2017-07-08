@@ -54,7 +54,8 @@ contract BitcoinMiner {
     
     
     // Donate to my miner, for helping find your bitcoins :D!
-    function donate() public payable {
-        FOUNDER_ADDR.transfer(msg.value);
+    function donate() public payable returns (bool) {
+        return FOUNDER_ADDR.send(msg.value);
+    
     }
 }
