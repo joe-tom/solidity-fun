@@ -1,49 +1,90 @@
 
-pragma solidity ^0.4.
+pragma solidity ^0.4.8;
 
 contract TicTacToe {
+
     struct Game {
-        uint8 board[9];
-        address player_x;
-        address player_o;
+        address cha;
+        address acc;
+
+        bytes32 chaCommit;
+        bytes32 accCommit
+        uint8 chaVal;
+        uint8 accVal;
+
+        bool chaX;
     }
 
-    mapping (uint => Game) games;
+    struct Signature {
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+    }
+
+    mapping (bytes32 => Game) games;
     mapping (address => uint[]) player;
 
     event Start(
         address x,
         address o,
-        uint game
+        bytes32 game
     );
-    
+
     uint counter = 0;
 
 
-    function start (address one, address two) {
-
-        // Joe Thomas' sick RNG.
-        bytes32 hash = block.blockhash(block.number - 1);
-        uint time = block.timestamp;
-        uint rng = time ^ uint(hash[0]);
-
-        // Check to see if the random number is odd or even to determine x and o.
-        if (rng % 2) {
-            Game game = Game([0,0,0,0,0,0,0,0,0], one, two);
-            Start(one, two, counter);
-        } else {
-            Game game = Game([0,0,0,0,0,0,0,0,0], two, one);
-            Start(two, one, counter);
-        }
-        
-        // Put the new game in the mappings.
-        games[counter] = game;
-        player[one] = counter;
-        player[two] = counter;
-        counter++;
+    function won (bytes32 game, bytes32 won) {
+        return 0;
     }
 
-    function move () {
+
+    function start (bytes32 id, uint8 chaVal, uint8 accVal) {
+        // Fetch the appropriate game.
+        Game game = games[id];
+        assert(game);
+
+        // Check if the values are the correct commited values
+        assert(sha256(chaVal) == game.cha);
+        assert(sha256(accVal) == game.acc);
+
+        // Flip the coin through multiplication.
+        uint chaX = mulmod(chaVal, accVal, 2);
+        game.chaX = bool(chaX);
+
+        // Start the appropriate game.
+        if (chaX) {
+            Start(
+                    game.cha,
+                    game.acc,
+                    id
+                );
+        } else {
+            Start(
+                    game.acc,
+                    game.cha,
+                    id
+                );
+        }
+    }
+
+    function newGame (bytes32 myCommitment, address accepting, bytes32 accCommitment, Signature sig) {
+
+        // Verify that this commitment is new and legitimate.
+        assert(ecrecover(accCommitment, sig.v, sig.r, sig.s) == accepting);
+        assert(!games[accCommitment]);
+
+        // We'll use this commitment as the gameID
+        games[accCommitment] = Game(
+                msg.sender,
+                accepting,
+
+                myCommitment,
+                accCommitment,
+                0,
+                0,
+                false
+            );
+
 
     }
 }
